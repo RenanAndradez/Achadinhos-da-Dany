@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Achadinhos da Dany</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      background: linear-gradient(to bottom, #fff7f0, #ffffff);
+      color: #333;
+      padding: 20px;
+    }
+    header { text-align: center; margin-bottom: 20px; }
+    header h1 { color: #ff7a00; font-size: 2.5em; margin: 0; }
+    header p { color: #777; margin: 5px 0 0; }
+    .categories {
+      display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-bottom: 20px;
+    }
+    .categories button {
+      padding: 10px 18px;
+      border-radius: 20px;
+      border: 1px solid #ddd;
+      background: #fff;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+    .categories button:hover {
+      box-shadow: 0 0 5px rgba(0,0,0,0.1);
+    }
+    .categories button.active {
+      background: #ff7a00; color: #fff; border-color: #ff7a00;
+    }
+    .panel {
+      background: #fff; border-radius: 10px; padding: 20px; max-width: 900px; margin: 0 auto;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    }
+    .panel h2 { margin-top: 0; color: #ff7a00; }
+    .search-bar {
+      display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px;
+    }
+    .search-bar input {
+      padding: 8px 10px; border: 1px solid #ccc; border-radius: 6px; flex: 1;
+    }
+    .search-bar button {
+      padding: 8px 12px; border: none; border-radius: 6px; cursor: pointer;
+    }
+    .add-btn { background: #ff7a00; color: #fff; }
+    .back-btn { background: #eee; }
+    form.add-form { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 15px; }
+    form.add-form input, form.add-form textarea { padding: 8px; border: 1px solid #ccc; border-radius: 6px; }
+    form.add-form textarea { grid-column: span 3; resize: vertical; }
+    form.add-form .actions { grid-column: span 3; display: flex; gap: 10px; }
+    .actions button { grid-column: span 3; padding: 8px 12px; border-radius: 6px; border: none; cursor: pointer; }
+    .actions .save { background: #28a745; color: #fff; }
+    .actions .cancel { background: #ccc; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 15px; }
+    .product {
+      border: 1px solid #eee; border-radius: 8px; padding: 10px; display: flex; flex-direction: column;
+    }
+    .product img { width: 100%; height: 140px; object-fit: cover; border-radius: 6px; margin-bottom: 10px; background: #f8f8f8; }
+    .product h3 { margin: 0 0 5px; font-size: 1.1em; }
+    .product p { font-size: 0.9em; color: #555; flex: 1; }
+    .price { font-weight: bold; color: #333; }
+    .prod-actions { display: flex; justify-content: space-between; gap: 5px; margin-top: 8px; }
+    .prod-actions button { flex: 1; border: 1px solid #ccc; border-radius: 6px; background: #fff; cursor: pointer; font-size: 0.85em; }
+    .prod-actions .remove { color: #d00; }
+    footer { text-align: center; margin-top: 20px; font-size: 0.85em; color: #777; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Achadinhos da Dany</h1>
+    <p>Produtos</p>
+  </header>
+
+  <div class="categories" id="categories"></div>
+  <div class="panel" id="panel"></div>
+
+  <footer>
+    Dados salvos localmente no navegador. Para resetar, limpe o armazenamento local.
+  </footer>
+
+  <script>
+    const categories = ['Cozinha','Cama, Mesa e Banho','Brinquedos','Eletrônicos','Beleza e Saúde','Roupas e Acessórios','Calçados','Casa e Decoração','Pet','Natal']
+    const panel = document.getElementById('panel')
+    const catContainer = document.getElementById('categories')
+    let data = JSON.parse(localStorage.getItem('achadinhos_html_data')||'{}')
+    categories.forEach(c => { if(!data[c]) data[c] = [] })
+    let activeCat = null
+
+    function save() { localStorage.setItem('achadinhos_html_data', JSON.stringify(data)) }
+    function renderCats() {
+      catContainer.innerHTML = ''
+      categories.forEach(c => {
+        const b = document.createElement('button')
+        b.textContent = c
+        b.className = activeCat === c ? 'active' : ''
+        b.onclick = () => openCat(c)
+        catContainer.appendChild(b)
+      })
+    }
+    function openCat(cat) {
+      activeCat = cat
+      renderCats()
+      panel.innerHTML = ''
+      const header = document.createElement('div')
+      header.innerHTML = `<h2>${cat}</h2><p>${data[cat].length} produto(s)</p>`
+      const searchDiv = document.createElement('div')
+      searchDiv.className = 'search-bar'
+      const input = document.createElement('input')
+      input.placeholder = 'Buscar na categoria'
+      const add = document.createElement('button')
+      add.className = 'add-btn'
+      add.textContent = 'Adicionar produto'
+      const back = document.createElement('button')
+      back.className = 'back-btn'
+      back.textContent = 'Voltar'
+      searchDiv.append(input, add, back)
+      panel.append(header, searchDiv)
+
+      const grid = document.createElement('div')
+      grid.className = 'grid'
+      panel.appendChild(grid)
+
+      function renderProducts() {
+        grid.innerHTML = ''
+        const query = input.value.toLowerCase()
+        const list = data[cat].filter(p => p.name.toLowerCase().includes(query))
+        if(list.length === 0) {
+          grid.innerHTML = '<div style="color:#777;">Nenhum produto encontrado.</div>'
+          return
+        }
+        list.forEach(p => {
+          const div = document.createElement('div')
+          div.className = 'product'
+          const img = document.createElement('img')
+          if(p.img) img.src = p.img
+          else img.alt = 'Sem imagem'
+          const h3 = document.createElement('h3')
+          h3.textContent = p.name
+          const desc = document.createElement('p')
+          desc.textContent = p.desc || ''
+          const price = document.createElement('div')
+          price.className = 'price'
+          price.textContent = `R$ ${Number(p.price).toFixed(2).replace('.',',')}`
+          const actions = document.createElement('div')
+          actions.className = 'prod-actions'
+          const copy = document.createElement('button')
+          copy.textContent = 'Copiar'
+          copy.onclick = () => navigator.clipboard.writeText(`${p.name} - R$ ${Number(p.price).toFixed(2)}`)
+          const rem = document.createElement('button')
+          rem.className = 'remove'
+          rem.textContent = 'Remover'
+          rem.onclick = () => { if(confirm('Remover produto?')) { data[cat] = data[cat].filter(x=>x.id!==p.id); save(); renderProducts() } }
+          actions.append(copy, rem)
+          div.append(img,h3,desc,price,actions)
+          grid.appendChild(div)
+        })
+      }
+
+      renderProducts()
+
+      input.oninput = renderProducts
+      back.onclick = () => { activeCat=null; panel.innerHTML=''; renderCats() }
+      add.onclick = () => {
+        const f = document.createElement('form')
+        f.className = 'add-form'
+        f.innerHTML = `
+          <input placeholder='Nome' required name='name'>
+          <input placeholder='Preço (ex: 49.90)' required name='price' type='number' step='0.01'>
+          <input placeholder='URL imagem (opcional)' name='img'>
+          <textarea placeholder='Descrição (opcional)' name='desc'></textarea>
+          <div class='actions'>
+            <button type='submit' class='save'>Salvar</button>
+            <button type='button' class='cancel'>Cancelar</button>
+          </div>`
+        panel.insertBefore(f, grid)
+        f.querySelector('.cancel').onclick = ()=> f.remove()
+        f.onsubmit = e => {
+          e.preventDefault()
+          const fd = new FormData(f)
+          const p = Object.fromEntries(fd.entries())
+          p.id = Date.now().toString()
+          data[cat].unshift(p)
+          save()
+          f.remove()
+          renderProducts()
+        }
+      }
+    }
+
+    renderCats()
+  </script>
+</body>
+</html>
